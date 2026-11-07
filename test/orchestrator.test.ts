@@ -326,16 +326,17 @@ describe('startup', () => {
   });
 
   it('does not open anything when the stored configuration is invalid, and keeps it', async () => {
-    const { browser, orchestrator, local } = setup([]);
-    const broken = { schemaVersion: 1, autoLaunchEnabled: true, groups: [{ id: 'x', name: 'X' }] };
-    local.data.set('config', broken);
+    const { browser, orchestrator, sync } = setup([]);
+    const broken = { id: 'x', name: 'X' };
+    sync.data.set('settings', { schemaVersion: 1, autoLaunchEnabled: true, groupIds: ['x'] });
+    sync.data.set('group:x', broken);
     browser.addWindow({ focused: true });
 
     const result = await orchestrator.handleBrowserStartup();
 
     expect(result?.status).toBe('error');
     expect(result?.message).toContain('Configuration invalide');
-    expect(local.data.get('config')).toEqual(broken);
+    expect(sync.data.get('group:x')).toEqual(broken);
     expect(browser.groups.size).toBe(0);
   });
 });

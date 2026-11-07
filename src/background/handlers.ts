@@ -3,11 +3,10 @@ import { emptyConfig } from '../shared/model';
 import type { ChromeApi, KeyValueStore } from './chromeApi';
 import { groupOpenTabs } from './matching';
 import { isUsableWindow, type Orchestrator } from './orchestrator';
-import { loadConfig, readLastResult, saveConfig } from './storage';
+import { loadConfig, readLastResult, saveConfig, type ConfigStores } from './storage';
 
-export interface HandlerDeps {
+export interface HandlerDeps extends ConfigStores {
   chrome: ChromeApi;
-  local: KeyValueStore;
   session: KeyValueStore;
   orchestrator: Orchestrator;
 }
@@ -43,10 +42,10 @@ export async function handleRequest(
   deps: HandlerDeps,
   request: Request,
 ): Promise<Response<ResponseData[keyof ResponseData]>> {
-  const { local, session, orchestrator } = deps;
+  const { session, orchestrator } = deps;
   switch (request.type) {
     case 'getState': {
-      const [load, lastResult] = await Promise.all([loadConfig(local), readLastResult(session)]);
+      const [load, lastResult] = await Promise.all([loadConfig(deps), readLastResult(session)]);
       return ok(
         load.ok
           ? {
@@ -67,28 +66,22 @@ export async function handleRequest(
     }
     case 'saveGroups': {
       // Only groups come from the editor: the global switch keeps its current value.
-      const load = await loadConfig(local);
+      const load = await loadConfig(deps);
       if (!load.ok) return { ok: false, error: UNREADABLE_CONFIG };
-      const saved = await saveConfig(local, { ...load.config, groups: request.groups });
-      return saved.ok
-        ? ok(saved.config)
-        : { ok: false, error: 'La configuration contient des erreurs.', issues: saved.issues };
+      const saved = await saveConfig(deps, { ...load.config, groups: request.groups });
+      return saved.ok ? ok(saved.config) : { ok: false, error: saved.error, issues: saved.issues };
     }
     case 'setAutoLaunch': {
-      const load = await loadConfig(local);
+      const load = await loadConfig(deps);
       if (!load.ok) return { ok: false, error: UNREADABLE_CONFIG };
-      const saved = await saveConfig(local, { ...load.config, autoLaunchEnabled: request.enabled });
-      return saved.ok
-        ? ok(saved.config)
-        : {
-            ok: false,
-            error: 'Corrigez d’abord les erreurs de la configuration.',
-            issues: saved.issues,
-          };
+      const saved = await saveConfig(deps, { ...load.config, autoLaunchEnabled: request.enabled });
+      return saved.ok ? ok(saved.config) : { ok: false, error: saved.error, issues: saved.issues };
     }
     case 'resetConfig': {
-      const saved = await saveConfig(local, emptyConfig());
-      return saved.ok ? ok(saved.config) : { ok: false, error: 'Réinitialisation impossible.' };
+      const saved = await saveConfig(deps, emptyConfig());
+      return saved.ok
+        ? ok(saved.config)
+        : { ok: false, error: `Réinitialisation impossible : ${saved.error}` };
     }
     case 'openGroup':
       return ok(

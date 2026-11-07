@@ -35,7 +35,7 @@ export function splitPastedUrls(text: string): string[] {
     .filter((line) => line !== '');
 }
 
-function FieldIssues({ issues }: { issues: ConfigIssue[] | undefined }) {
+export function FieldIssues({ issues }: { issues: ConfigIssue[] | undefined }) {
   if (!issues) return null;
   return (
     <>

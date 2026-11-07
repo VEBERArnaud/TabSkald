@@ -50,7 +50,11 @@ export interface ChromeApi {
 
 export interface KeyValueStore {
   get(key: string): Promise<unknown>;
+  getAll(): Promise<Record<string, unknown>>;
   set(key: string, value: unknown): Promise<void>;
+  /** Writes all items in a single call, which counts as one write against sync quotas. */
+  setMany(items: Record<string, unknown>): Promise<void>;
+  remove(keys: string[]): Promise<void>;
 }
 
 export const NO_GROUP = -1;
@@ -139,8 +143,17 @@ export function createChromeStore(area: chrome.storage.StorageArea): KeyValueSto
       const items = await area.get(key);
       return items[key];
     },
+    getAll() {
+      return area.get(null);
+    },
     async set(key, value) {
       await area.set({ [key]: value });
+    },
+    async setMany(items) {
+      await area.set(items);
+    },
+    async remove(keys) {
+      await area.remove(keys);
     },
   };
 }

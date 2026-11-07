@@ -9,10 +9,12 @@ src/
     validation.ts    Validation des URL, lecture structurelle et règles métier de la configuration
     messages.ts      Messages typés UI → service worker, validation à l’exécution
     importDraft.ts   Conversion d’un groupe ouvert en modèle (import)
+    syncLayout.ts    Découpage de la configuration en clés storage.sync, quotas
+    configFile.ts    Export et import de la configuration en JSON
   background/      Service worker
     index.ts         Listeners au niveau supérieur, branchement des dépendances réelles
     chromeApi.ts     Adaptateur minimal des API Chrome (interface ChromeApi + implémentation)
-    storage.ts       Configuration (storage.local) et état d’exécution (storage.session)
+    storage.ts       Configuration (storage.sync) et état d’exécution (storage.session)
     matching.ts      Normalisation d’URL, reconnaissance des groupes déjà ouverts
     orchestrator.ts  File sérialisée, démarrage, ouverture des groupes
     handlers.ts      Traitement des messages
@@ -68,6 +70,28 @@ Le résultat reste consultable via `lastResult`.
 La popup résout explicitement sa fenêtre avec `chrome.windows.getCurrent()`, qui désigne celle qui
 l’héberge, et transmet son identifiant.
 
+### Configuration synchronisée
+
+```
+saveConfig ─► normalisation, validation (règles métier et quotas de storage.sync)
+           ─► sync.set({ settings, group:<id>… })   une seule écriture
+           ─► sync.remove(group:<id> supprimés)
+           ─► local.remove(config)                  ancienne configuration non synchronisée
+
+loadConfig ─► settings + group:<id> de storage.sync, dans l’ordre de settings.groupIds
+           ─► sinon config de storage.local (version antérieure, pas encore migrée)
+           ─► sinon configuration vide, sans rien écrire
+
+runtime.onInstalled ─► migrateLegacyConfig : storage.local ─► storage.sync si sync est vide
+```
+
+Une clé par groupe garde chaque élément sous la limite de 8 Ko par clé. Les quotas sont vérifiés
+avec les règles métier, ce qui permet d’afficher l’erreur à côté du groupe trop volumineux. Une
+écriture refusée par Chrome (fréquence ou taille) est renvoyée comme une erreur d’enregistrement.
+
+Les interfaces écoutent `storage.onChanged` pour toutes les zones : une modification arrivée d’un
+autre ordinateur rafraîchit la popup et la page de paramètres.
+
 ## Choix et compromis
 
 - **File en mémoire plutôt que verrou** : `chrome.storage` n’offre pas de transaction. Une file de
@@ -85,6 +109,11 @@ l’héberge, et transmet son identifiant.
 - **Avertissement pour les URL en double dans un modèle** : signalées mais non bloquantes, car
   ouvrir deux fois la même page peut être voulu.
 - **Modèles importés non ouverts au démarrage par défaut** : l’utilisateur l’active explicitement.
+- **Synchronisation sans fusion** : le dernier enregistrement l’emporte. Une fusion par groupe
+  demanderait un historique des modifications, disproportionné pour une configuration modifiée
+  rarement.
+- **Import JSON vers l’éditeur** : le fichier remplace les modèles du brouillon, sans enregistrer.
+  L’utilisateur peut encore annuler, comme pour l’import d’un groupe ouvert.
 - **Pas de rechargement à chaud** : `pnpm dev` recompile en continu. Le rechargement de l’extension
   reste manuel, ce qui évite un outillage spécifique.
 
@@ -99,3 +128,6 @@ Vite construit trois points d’entrée :
 
 Les morceaux partagés sont placés dans `dist/assets`. `public/` (manifest, icônes) est copié tel
 quel. La cible est `chrome102`, alignée sur `minimum_chrome_version`.
+
+`pnpm package` produit `tabskald.zip`, avec `manifest.json` à la racine, comme l’attend le Chrome
+Web Store. Le workflow `release.yml` le joint à chaque release créée par release-please.
