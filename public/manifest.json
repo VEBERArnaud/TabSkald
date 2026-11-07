@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "TabSkald",
+  "short_name": "TabSkald",
+  "version": "0.1.0",
+  "description": "Ouvrez automatiquement vos groupes d’onglets au démarrage de Chrome.",
+  "minimum_chrome_version": "102",
+  "permissions": ["storage", "tabGroups", "tabs"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "TabSkald",
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/index.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

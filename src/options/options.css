@@ -1,0 +1,103 @@
+.options {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.groups-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.group-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.group-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.75rem;
+}
+
+.grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.group-editor h3 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.tabs {
+  margin: 0;
+  padding-left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tab-row {
+  flex-wrap: nowrap;
+}
+
+.paste {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.open-groups {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.import-preview ol {
+  word-break: break-all;
+}
+
+.import-preview code {
+  word-break: break-all;
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 0;
+}
+
+.save-bar .banner {
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
