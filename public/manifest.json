@@ -5,7 +5,11 @@
   "version": "0.1.0",
   "description": "Ouvrez automatiquement vos groupes d’onglets au démarrage de Chrome.",
   "minimum_chrome_version": "102",
-  "permissions": ["storage", "tabGroups", "tabs"],
+  "permissions": [
+    "storage",
+    "tabGroups",
+    "tabs"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
