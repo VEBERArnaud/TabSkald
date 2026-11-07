@@ -2,6 +2,16 @@
   "name": "tabskald",
   "version": "0.1.0",
   "description": "Ouvrez automatiquement vos groupes d’onglets au démarrage de Chrome.",
+  "license": "MIT",
+  "author": "VEBER Arnaud",
+  "homepage": "https://github.com/VEBERArnaud/TabSkald#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VEBERArnaud/TabSkald.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VEBERArnaud/TabSkald/issues"
+  },
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.2",
