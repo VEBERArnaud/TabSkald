@@ -1,0 +1,16 @@
+name: Proposer une amélioration
+description: Une idée ou un besoin non couvert
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Besoin
+      description: Le problème à résoudre, avec un exemple concret.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: Comment TabSkald pourrait y répondre (facultatif).

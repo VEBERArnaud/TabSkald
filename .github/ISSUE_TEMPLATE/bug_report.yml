@@ -1,0 +1,40 @@
+name: Signaler un bug
+description: Un comportement inattendu de TabSkald
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Ce qui se passe, et ce que vous attendiez.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      placeholder: |
+        1. Configurer un groupe…
+        2. Quitter Chrome avec ⌘Q…
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version de TabSkald
+      description: Visible dans chrome://extensions.
+    validations:
+      required: true
+  - type: input
+    id: chrome
+    attributes:
+      label: Version de Chrome et système
+      placeholder: Chrome 156, macOS 26
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Dernière opération
+      description: Le résultat affiché dans la popup, s’il y en a un. Retirez les URL privées.

@@ -357,3 +357,16 @@ corrective. Le Chrome Web Store exige une version strictement supérieure à la 
 ## Architecture
 
 Voir [docs/architecture.md](docs/architecture.md).
+
+## Contribuer
+
+Les contributions sont les bienvenues : voir [CONTRIBUTING.md](CONTRIBUTING.md). Pour signaler une
+vulnérabilité, suivez [SECURITY.md](SECURITY.md).
+
+## Confidentialité
+
+TabSkald ne collecte aucune donnée : voir [PRIVACY.md](PRIVACY.md).
+
+## Licence
+
+[MIT](LICENSE) © VEBER Arnaud
