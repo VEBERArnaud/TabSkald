@@ -14,12 +14,12 @@ import {
   writeLastResult,
   writeManaged,
   writeStartup,
+  type ConfigStores,
   type ManagedGroup,
 } from './storage';
 
-export interface OrchestratorDeps {
+export interface OrchestratorDeps extends ConfigStores {
   chrome: ChromeApi;
-  local: KeyValueStore;
   session: KeyValueStore;
   now?: () => number;
 }
@@ -88,7 +88,7 @@ function templateIssues(issues: ConfigIssue[], templateId: string): ConfigIssue[
 }
 
 export function createOrchestrator(deps: OrchestratorDeps) {
-  const { chrome, local, session } = deps;
+  const { chrome, session } = deps;
   const now = deps.now ?? Date.now;
 
   // Every opening goes through this queue, so a double click or two concurrent events
@@ -301,7 +301,7 @@ export function createOrchestrator(deps: OrchestratorDeps) {
 
   async function runStartup(): Promise<OperationResult | undefined> {
     try {
-      const load = await loadConfig(local);
+      const load = await loadConfig(deps);
       if (!load.ok)
         return await finishStartup(
           failure('startup', `Configuration invalide : ${load.error}`, now()),
@@ -351,7 +351,7 @@ export function createOrchestrator(deps: OrchestratorDeps) {
         now(),
       );
     }
-    const load = await loadConfig(local);
+    const load = await loadConfig(deps);
     if (!load.ok) return failure('manual', `Configuration invalide : ${load.error}`, now());
 
     let templates: GroupTemplate[];

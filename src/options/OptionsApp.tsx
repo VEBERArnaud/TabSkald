@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AppState } from '../shared/messages';
 import { newGroupTemplate, type GroupTemplate } from '../shared/model';
-import { hasErrors, validateConfig, type ConfigIssue } from '../shared/validation';
+import { hasErrors, issuePath, validateConfig, type ConfigIssue } from '../shared/validation';
 import { LastResult } from '../ui/LastResult';
 import { send } from '../ui/api';
-import { GroupEditor, moveItem } from './GroupEditor';
+import { ConfigFilePanel } from './ConfigFilePanel';
+import { FieldIssues, GroupEditor, moveItem } from './GroupEditor';
 import { ImportPanel } from './ImportPanel';
 
 type Banner = { kind: 'success' | 'error' | 'info'; text: string } | null;
@@ -169,7 +170,10 @@ export function OptionsApp() {
           />
           Ouvrir automatiquement les groupes activés au démarrage de Chrome
         </label>
-        <p className="muted small">Ce réglage est enregistré immédiatement.</p>
+        <p className="muted small">
+          Ce réglage est enregistré immédiatement. Comme les modèles, il est synchronisé entre les
+          ordinateurs connectés au même profil Chrome.
+        </p>
       </section>
 
       <section className="groups-section">
@@ -185,6 +189,7 @@ export function OptionsApp() {
             Nouveau groupe
           </button>
         </div>
+        <FieldIssues issues={issueMap.get(issuePath.groups())} />
 
         {draft.length === 0 ? (
           <div className="card empty">
@@ -233,6 +238,18 @@ export function OptionsApp() {
           setBanner({
             kind: 'info',
             text: `Modèle « ${template.name} » ajouté : enregistrez pour le conserver.`,
+          });
+        }}
+      />
+
+      <ConfigFilePanel
+        config={state.config}
+        dirty={dirty}
+        onImport={(groups) => {
+          edit(groups);
+          setBanner({
+            kind: 'info',
+            text: 'Configuration importée : enregistrez pour la conserver.',
           });
         }}
       />

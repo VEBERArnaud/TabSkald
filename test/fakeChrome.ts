@@ -10,14 +10,31 @@ import { NO_GROUP } from '../src/background/chromeApi';
 
 export class MemoryStore implements KeyValueStore {
   readonly data = new Map<string, unknown>();
+  /** When set, every write is rejected with this error, like an exceeded sync quota. */
+  writeError: Error | undefined;
 
   get(key: string): Promise<unknown> {
     const value = this.data.get(key);
     return Promise.resolve(value === undefined ? undefined : structuredClone(value));
   }
 
+  getAll(): Promise<Record<string, unknown>> {
+    return Promise.resolve(structuredClone(Object.fromEntries(this.data)));
+  }
+
   set(key: string, value: unknown): Promise<void> {
-    this.data.set(key, structuredClone(value));
+    return this.setMany({ [key]: value });
+  }
+
+  setMany(items: Record<string, unknown>): Promise<void> {
+    if (this.writeError) return Promise.reject(this.writeError);
+    for (const [key, value] of Object.entries(items)) this.data.set(key, structuredClone(value));
+    return Promise.resolve();
+  }
+
+  remove(keys: string[]): Promise<void> {
+    if (this.writeError) return Promise.reject(this.writeError);
+    for (const key of keys) this.data.delete(key);
     return Promise.resolve();
   }
 }

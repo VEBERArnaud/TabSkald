@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { handleRequest } from '../src/background/handlers';
+import { loadConfig } from '../src/background/storage';
+import { exportFileName, parseConfigFile, serializeConfig } from '../src/shared/configFile';
 import type { OpenGroupSummary } from '../src/shared/messages';
 import { buildImportDraft, DEFAULT_IMPORTED_NAME } from '../src/shared/importDraft';
 import { config, setup, template } from './helpers';
@@ -100,7 +102,10 @@ describe('importing an open group through the service worker', () => {
     expect(saved.ok).toBe(true);
 
     deps.browser.closeGroup(groupId);
-    expect(deps.local.data.get('config')).toEqual(config([existing, draft.template]));
+    expect(await loadConfig(deps)).toMatchObject({
+      ok: true,
+      config: config([existing, draft.template]),
+    });
   });
 });
 
@@ -108,14 +113,14 @@ describe('settings messages', () => {
   it('keeps the global switch when saving groups', async () => {
     const deps = setup([], { autoLaunchEnabled: false });
     await handleRequest(deps, { type: 'saveGroups', groups: [template('A', ['https://a.test/'])] });
-    expect(deps.local.data.get('config')).toMatchObject({ autoLaunchEnabled: false });
+    expect(await loadConfig(deps)).toMatchObject({ config: { autoLaunchEnabled: false } });
   });
 
   it('toggles automatic opening', async () => {
     const deps = setup([template('A', ['https://a.test/'])]);
     const response = await handleRequest(deps, { type: 'setAutoLaunch', enabled: false });
     expect(response.ok).toBe(true);
-    expect(deps.local.data.get('config')).toMatchObject({ autoLaunchEnabled: false });
+    expect(await loadConfig(deps)).toMatchObject({ config: { autoLaunchEnabled: false } });
   });
 
   it('returns field-level issues on invalid save', async () => {
@@ -130,7 +135,7 @@ describe('settings messages', () => {
 
   it('exposes an unreadable configuration without overwriting it', async () => {
     const deps = setup([]);
-    deps.local.data.set('config', { schemaVersion: 1 });
+    deps.sync.data.set('settings', { schemaVersion: 1 });
     const state = await handleRequest(deps, { type: 'getState' });
     expect(state).toMatchObject({
       ok: true,
@@ -138,6 +143,27 @@ describe('settings messages', () => {
     });
     const toggle = await handleRequest(deps, { type: 'setAutoLaunch', enabled: true });
     expect(toggle.ok).toBe(false);
-    expect(deps.local.data.get('config')).toEqual({ schemaVersion: 1 });
+    expect(deps.sync.data.get('settings')).toEqual({ schemaVersion: 1 });
+  });
+});
+
+describe('configuration file', () => {
+  it('round-trips the saved configuration', () => {
+    const value = config([template('A', ['https://a.test/']), template('B', [])], false);
+    expect(parseConfigFile(serializeConfig(value))).toEqual({ ok: true, config: value });
+  });
+
+  it('names the file after the export date', () => {
+    expect(exportFileName(new Date('2026-11-07T23:00:00Z'))).toBe('tabskald-2026-11-07.json');
+  });
+
+  it.each([
+    ['not json', 'JSON valide'],
+    ['[]', 'mal formée'],
+    ['{"schemaVersion":2,"autoLaunchEnabled":true,"groups":[]}', 'Version'],
+  ])('rejects %s with a readable message', (text, expected) => {
+    const parsed = parseConfigFile(text);
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.error).toContain(expected);
   });
 });

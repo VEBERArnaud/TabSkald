@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { loadConfig, saveConfig } from '../src/background/storage';
 import { parseRequest } from '../src/shared/messages';
 import { checkUrl, issuePath, parseConfig, validateConfig } from '../src/shared/validation';
-import { MemoryStore } from './fakeChrome';
 import { config, template } from './helpers';
 
 describe('checkUrl', () => {
@@ -71,6 +69,27 @@ describe('validateConfig', () => {
   });
 });
 
+describe('sync quotas', () => {
+  const longUrls = (count: number) =>
+    Array.from({ length: count }, (_, index) => `https://example.com/${'x'.repeat(200)}/${index}`);
+
+  it('rejects a group too large for one sync item, next to its URLs', () => {
+    const big = template('Big', longUrls(40));
+    const issues = validateConfig(config([big]));
+    expect(issues).toEqual([
+      expect.objectContaining({ path: issuePath.groupTabs(big.id), severity: 'error' }),
+    ]);
+  });
+
+  it('rejects a configuration over the total sync quota', () => {
+    const groups = Array.from({ length: 20 }, (_, index) => template(`G${index}`, longUrls(25)));
+    const issues = validateConfig(config(groups));
+    expect(issues).toEqual([
+      expect.objectContaining({ path: issuePath.groups(), severity: 'error' }),
+    ]);
+  });
+});
+
 describe('parseConfig', () => {
   it('accepts a valid configuration', () => {
     const value = config([template('A', ['https://a.test/'])]);
@@ -100,50 +119,6 @@ describe('parseConfig', () => {
   it('rejects duplicated template ids', () => {
     const tpl = template('A', ['https://a.test/']);
     expect(parseConfig(config([tpl, { ...tpl }])).ok).toBe(false);
-  });
-});
-
-describe('configuration storage', () => {
-  it('returns an empty configuration on first use without writing anything', async () => {
-    const local = new MemoryStore();
-    const load = await loadConfig(local);
-    expect(load).toEqual({
-      ok: true,
-      config: { schemaVersion: 1, autoLaunchEnabled: true, groups: [] },
-      issues: [],
-    });
-    expect(local.data.size).toBe(0);
-  });
-
-  it('persists a valid configuration, trimmed, and reads it back unchanged', async () => {
-    const local = new MemoryStore();
-    const tpl = template('  Projet  ', ['  https://a.test/x?y=1#z  ']);
-    const saved = await saveConfig(local, config([tpl]));
-    expect(saved.ok).toBe(true);
-    const load = await loadConfig(local);
-    expect(load.ok && load.config.groups[0]).toMatchObject({
-      name: 'Projet',
-      tabs: [{ url: 'https://a.test/x?y=1#z' }],
-    });
-  });
-
-  it('refuses to save invalid data and keeps the previous configuration', async () => {
-    const local = new MemoryStore();
-    const previous = config([template('A', ['https://a.test/'])]);
-    await saveConfig(local, previous);
-    const saved = await saveConfig(local, config([template('B', ['ftp://b.test/'])]));
-    expect(saved.ok).toBe(false);
-    expect(local.data.get('config')).toEqual(previous);
-  });
-
-  it('never erases an unreadable stored configuration', async () => {
-    const local = new MemoryStore();
-    const broken = { schemaVersion: 1, groups: 'oops' };
-    local.data.set('config', broken);
-    const load = await loadConfig(local);
-    expect(load.ok).toBe(false);
-    if (!load.ok) expect(load.raw).toEqual(broken);
-    expect(local.data.get('config')).toEqual(broken);
   });
 });
 

@@ -5,6 +5,14 @@ import {
   type GroupTemplate,
   type TabTemplate,
 } from './model';
+import {
+  SETTINGS_KEY,
+  SYNC_QUOTA_BYTES,
+  SYNC_QUOTA_BYTES_PER_ITEM,
+  groupKey,
+  itemBytes,
+  toSyncItems,
+} from './syncLayout';
 
 export const MAX_NAME_LENGTH = 100;
 
@@ -33,13 +41,14 @@ export function checkUrl(raw: string): UrlCheck {
 }
 
 export interface ConfigIssue {
-  /** Points at a field: `groups.<groupId>.name`, `groups.<groupId>.tabs`, `groups.<groupId>.tabs.<tabId>`. */
+  /** Points at a field: `groups` (the whole list), `groups.<groupId>.name`, `groups.<groupId>.tabs`, `groups.<groupId>.tabs.<tabId>`. */
   path: string;
   severity: 'error' | 'warning';
   message: string;
 }
 
 export const issuePath = {
+  groups: () => 'groups',
   groupName: (groupId: string) => `groups.${groupId}.name`,
   groupTabs: (groupId: string) => `groups.${groupId}.tabs`,
   tab: (groupId: string, tabId: string) => `groups.${groupId}.tabs.${tabId}`,
@@ -90,6 +99,42 @@ export function validateConfig(config: Config): ConfigIssue[] {
       }
       seen.add(check.url);
     }
+  }
+  issues.push(...syncQuotaIssues(config));
+  return issues;
+}
+
+const kilobytes = (bytes: number) => `${Math.ceil(bytes / 1024)} Ko`;
+
+/** The configuration is synchronized: it must fit in chrome.storage.sync quotas. */
+function syncQuotaIssues(config: Config): ConfigIssue[] {
+  const issues: ConfigIssue[] = [];
+  let total = 0;
+  for (const [key, value] of Object.entries(toSyncItems(config))) {
+    const bytes = itemBytes(key, value);
+    total += bytes;
+    if (bytes <= SYNC_QUOTA_BYTES_PER_ITEM) continue;
+    const group = config.groups.find((candidate) => groupKey(candidate.id) === key);
+    if (key === SETTINGS_KEY || !group) {
+      issues.push({
+        path: issuePath.groups(),
+        severity: 'error',
+        message: 'Trop de groupes pour être synchronisés : supprimez-en quelques-uns.',
+      });
+    } else {
+      issues.push({
+        path: issuePath.groupTabs(group.id),
+        severity: 'error',
+        message: `Ce groupe est trop volumineux pour être synchronisé (${kilobytes(bytes)} pour ${kilobytes(SYNC_QUOTA_BYTES_PER_ITEM)} maximum) : répartissez ses onglets dans plusieurs groupes.`,
+      });
+    }
+  }
+  if (total > SYNC_QUOTA_BYTES) {
+    issues.push({
+      path: issuePath.groups(),
+      severity: 'error',
+      message: `La configuration est trop volumineuse pour être synchronisée (${kilobytes(total)} pour ${kilobytes(SYNC_QUOTA_BYTES)} maximum) : supprimez des groupes ou des onglets.`,
+    });
   }
   return issues;
 }
@@ -179,7 +224,7 @@ export function parseGroups(raw: unknown): ParseResult<GroupTemplate[]> {
 
 /** Structural check of stored data. Business rules are checked separately by validateConfig. */
 export function parseConfig(raw: unknown): ParseResult<Config> {
-  if (!isRecord(raw)) return { ok: false, error: 'La configuration enregistrée est mal formée.' };
+  if (!isRecord(raw)) return { ok: false, error: 'La configuration est mal formée.' };
   if (raw.schemaVersion !== SCHEMA_VERSION) {
     return {
       ok: false,

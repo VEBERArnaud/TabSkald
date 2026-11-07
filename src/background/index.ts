@@ -2,11 +2,13 @@ import { parseRequest } from '../shared/messages';
 import { createChromeApi, createChromeStore } from './chromeApi';
 import { handleRequest } from './handlers';
 import { createOrchestrator } from './orchestrator';
+import { migrateLegacyConfig } from './storage';
 
 const api = createChromeApi();
+const sync = createChromeStore(chrome.storage.sync);
 const local = createChromeStore(chrome.storage.local);
 const session = createChromeStore(chrome.storage.session);
-const orchestrator = createOrchestrator({ chrome: api, local, session });
+const orchestrator = createOrchestrator({ chrome: api, sync, local, session });
 
 function reportUnexpected(error: unknown): void {
   // Only the message is logged, never the configured URLs.
@@ -18,6 +20,10 @@ function reportUnexpected(error: unknown): void {
 
 chrome.runtime.onStartup.addListener(() => {
   orchestrator.handleBrowserStartup().catch(reportUnexpected);
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  migrateLegacyConfig({ sync, local }).catch(reportUnexpected);
 });
 
 chrome.windows.onCreated.addListener(
@@ -43,7 +49,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     return false;
   }
   // The operation runs here, in the service worker: if the popup closes, it still completes.
-  handleRequest({ chrome: api, local, session, orchestrator }, request)
+  handleRequest({ chrome: api, sync, local, session, orchestrator }, request)
     .then(sendResponse)
     .catch((error: unknown) => {
       reportUnexpected(error);
