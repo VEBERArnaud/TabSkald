@@ -37,7 +37,17 @@ sessions ni un remplacement de la page Nouvel onglet.
 
 ## Installation
 
-Prérequis : Node.js 22 ou plus et pnpm 10. L’extension est conçue pour Chrome 102 ou plus récent.
+TabSkald est publié sur le Chrome Web Store (non répertorié, accessible par lien) :
+[installer TabSkald](https://chromewebstore.google.com/detail/tabskald/jmlefpakljpebcgohenolbmkmekpbkhf).
+Chrome 102 ou plus récent est requis. Les mises à jour sont installées automatiquement.
+
+Si la synchronisation des extensions est active dans Chrome, TabSkald s’installe aussi sur les
+autres ordinateurs connectés au même profil, et sa configuration les suit (voir
+[Synchronisation entre ordinateurs](#synchronisation-entre-ordinateurs)).
+
+### Depuis les sources
+
+Pour développer ou tester une modification. Prérequis : Node.js 22 ou plus et pnpm 10.
 
 ```sh
 pnpm install
@@ -53,6 +63,10 @@ Puis, dans Chrome :
 
 Après une nouvelle compilation, cliquer sur l’icône de rechargement de TabSkald dans
 `chrome://extensions`. La configuration est conservée lors d’un rechargement.
+
+La version chargée depuis les sources a un autre identifiant que celle du Store : sa configuration
+est distincte. Pour passer de l’une à l’autre, utilisez l’export et l’import JSON, et n’en gardez
+qu’une active pour éviter que les groupes s’ouvrent deux fois au démarrage.
 
 ## Développement
 
@@ -148,7 +162,8 @@ Conditions :
 - la synchronisation Chrome doit être active pour ce profil (`chrome://settings/syncSetup`) ;
 - l’extension doit avoir **le même identifiant** sur chaque ordinateur : c’est le cas d’une
   installation depuis le Chrome Web Store. Une extension chargée en mode développeur a un
-  identifiant qui dépend de son dossier : utilisez alors l’export et l’import JSON.
+  identifiant qui dépend de son dossier : utilisez alors l’export et l’import JSON. L’identifiant
+  de la version du Store est `jmlefpakljpebcgohenolbmkmekpbkhf`.
 
 Comportement :
 
